@@ -22,7 +22,7 @@ __ALIGN_BEGIN USB_OTG_CORE_HANDLE  USB_OTG_dev __ALIGN_END;
 #define N_REP 10000
 #define BUFF_SIZE 10
 #define DMA_BUFFER_SIZE 512 
-#define DMA_BUFFER_TARGET DMA_BUFFER_SIZE/2
+#define DMA_BUFFER_TARGET 1 
 
 __IO uint16_t ADC3ConvertedValue[DMA_BUFFER_SIZE];
 
@@ -43,11 +43,10 @@ int main(void) {
 	 */
 	setbuf(stdout, NULL);
 
-    ADC_SoftwareStartConv(ADC1);
 
 
 	//calculation_test();
-    //test_adc_led();
+    test_adc_led();
     //test_adc();
 	for(;;) {
 		GPIO_SetBits(GPIOD, GPIO_Pin_15);
@@ -98,6 +97,10 @@ void adc_configuration(void)
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
     GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
     GPIO_Init(GPIOC, &GPIO_InitStructure);
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+    GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL ;
+    GPIO_Init(GPIOC, &GPIO_InitStructure);
     
     /* ADC Common Init **********************************************************/
     ADC_CommonInitStructure.ADC_Mode = ADC_Mode_Independent;
@@ -108,16 +111,20 @@ void adc_configuration(void)
     
     /* ADC3 Init ****************************************************************/
     ADC_InitStructure.ADC_Resolution = ADC_Resolution_12b;
-    ADC_InitStructure.ADC_ScanConvMode = DISABLE;
+    ADC_InitStructure.ADC_ScanConvMode = ENABLE;//DISABLE;
     ADC_InitStructure.ADC_ContinuousConvMode = DISABLE;
     ADC_InitStructure.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_Rising;
     ADC_InitStructure.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T2_TRGO;
     ADC_InitStructure.ADC_DataAlign = ADC_DataAlign_Right;
-    ADC_InitStructure.ADC_NbrOfConversion = 1;
+    ADC_InitStructure.ADC_NbrOfConversion = 2;
+
     ADC_Init(ADC1, &ADC_InitStructure);
-    
-    /* ADC3 regular channel12 configuration *************************************/
-    ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 1, ADC_SampleTime_3Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_11, 2, ADC_SampleTime_3Cycles);
+    ADC_RegularChannelConfig(ADC1, ADC_Channel_12, 1, ADC_SampleTime_3Cycles);
+    ADC_SoftwareStartConv(ADC1);
+
+    /* Enable ADC1 */
+    ADC_Cmd(ADC1, ENABLE);
 }
 
 void tim_configuration(void)
@@ -128,7 +135,7 @@ void tim_configuration(void)
     
     /* Time base configuration */
     TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-    TIM_TimeBaseStructure.TIM_Period = (84000000 / 20000) - 1; // 200 KHz, from 84 MHz TIM2CLK (ie APB1 = HCLK/4, TIM2CLK = HCLK/2)
+    TIM_TimeBaseStructure.TIM_Period = (84000000 / 20000) - 1; // 20 KHz, from 84 MHz TIM2CLK (ie APB1 = HCLK/4, TIM2CLK = HCLK/2)
     TIM_TimeBaseStructure.TIM_Prescaler = 1 - 1;
     TIM_TimeBaseStructure.TIM_ClockDivision = 0;
     TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
@@ -180,8 +187,7 @@ void dma_configuration(void)
     /* Enable ADC1 DMA */
     ADC_DMACmd(ADC1, ENABLE);
     
-    /* Enable ADC1 */
-    ADC_Cmd(ADC1, ENABLE);
+
 }
 
 void test_adc_led() {
